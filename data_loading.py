@@ -1,6 +1,5 @@
 import pandas as pd
 from sqlalchemy import create_engine, text
-import pyodbc
 from tqdm import tqdm
 
 # Load CSV
@@ -12,6 +11,7 @@ duplicates = df[df.duplicated(subset='book_id', keep=False)]
 print(f"Found {len(duplicates)} duplicate rows:")
 print(duplicates)
 
+# Drop duplicates based on 'book_id' column
 df = df.drop_duplicates(subset='book_id', keep='first')
 
 # Azure SQL Connection String
@@ -25,22 +25,13 @@ connection_string = f'mssql+pyodbc://{username}:{password}@{server}/{database}?d
 # Create SQLAlchemy engine
 engine = create_engine(connection_string)
 
-# Insert data with duplicate check
+# Insert data with duplicate check using chunks
 print("Uploading data to Azure SQL...")
+
 try:
-    with engine.connect() as conn:
-        for _, row in tqdm(df.iterrows(), total=len(df), desc="Uploading rows"):
-            # Parameterized query to check for duplicates
-            check_query = text("SELECT 1 FROM Books WHERE book_id = :book_id")
-            result = conn.execute(check_query, {"book_id": row['book_id']}).fetchone()
+    # Use chunksize for batch uploading
+    df.to_sql('Books', engine, if_exists='append', index=False, chunksize=1000)
 
-            # Skip if book_id already exists
-            if result:
-                continue
-
-            # Insert the row
-            row_df = pd.DataFrame([row])  # Convert row to DataFrame
-            row_df.to_sql('Books', conn, if_exists='append', index=False)
     print("Data upload completed successfully!")
 except Exception as e:
     print(f"Error occurred: {e}")
