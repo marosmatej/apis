@@ -1,4 +1,5 @@
 const Book = require('../models/bookModel')
+const { Op } =  require('sequelize')
 
 const getAllBooks = async (req, res) => {
     try {
@@ -24,8 +25,10 @@ const getAllBooks = async (req, res) => {
 
 // Get a book by ID
 const getBookById = async (req, res) => {
+    
     try {
         const { id } = req.params;
+        console.log('id', id)
         const book = await Book.findByPk(id);
 
         if (!book) {
