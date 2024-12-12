@@ -1,0 +1,39 @@
+{
+<<<<<<< HEAD
+    "appService.zipIgnorePattern": [
+        "__pycache__{,/**}",
+        "*.py[cod]",
+        "*$py.class",
+        ".Python{,/**}",
+        "build{,/**}",
+        "develop-eggs{,/**}",
+        "dist{,/**}",
+        "downloads{,/**}",
+        "eggs{,/**}",
+        ".eggs{,/**}",
+        "lib{,/**}",
+        "lib64{,/**}",
+        "parts{,/**}",
+        "sdist{,/**}",
+        "var{,/**}",
+        "wheels{,/**}",
+        "share/python-wheels{,/**}",
+        "*.egg-info{,/**}",
+        ".installed.cfg",
+        "*.egg",
+        "MANIFEST",
+        ".env{,/**}",
+        ".venv{,/**}",
+        "env{,/**}",
+        "venv{,/**}",
+        "ENV{,/**}",
+        "env.bak{,/**}",
+        "venv.bak{,/**}",
+        ".vscode{,/**}"
+    ],
+    "appService.defaultWebAppToDeploy": "/subscriptions/f60b7b52-b949-4ea0-8ecc-f9eb7d8a7b7f/resourceGroups/APIS2024/providers/Microsoft.Web/sites/ApisBookRecomender",
+=======
+    "appService.defaultWebAppToDeploy": "undefined/subscriptions/1f312c84-5b21-47c4-b01a-635cf6ec52b3/resourceGroups/appsvc_linux_centralus_basic/providers/Microsoft.Web/sites/bookstorebackendapis",
+>>>>>>> 7c233839458775aebd3dd5039519bcc09c1bb48b
+    "appService.deploySubpath": "."
+}
