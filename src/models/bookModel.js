@@ -2,7 +2,13 @@ const { DataTypes } = require('sequelize');
 const { sequelize } = require('../utils/db');
 
 const Book = sequelize.define('Book', {
-    book_id: { type: DataTypes.INTEGER, primaryKey: true },
+    book_id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true, // Enables auto-increment for this column
+    allowNull: false // Ensures the column cannot be null
+},
+
     goodreads_book_id: { type: DataTypes.INTEGER },
     best_book_id: { type: DataTypes.INTEGER },
     work_id: { type: DataTypes.INTEGER },
