@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
 const User = require('../models/userModel');
+const TokenBlacklist = require('../models/tokenBlackList');
 
 const register = async (req, res) =>{
     const { username, password, role } = req.body;
@@ -37,4 +38,31 @@ const login = async (req, res) => {
     }
 };
 
-module.exports = { register, login };
+
+const logout = async (req, res) => {
+    const token = req.headers.authorization?.split(' ')[1];
+
+    if (!token) {
+        return res.status(400).json({ error: 'No token provided' });
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.SECRET_KEY);
+        const expiryDate = new Date(decoded.exp * 1000);
+        console.log('decoded', decoded)
+        console.log('expriation date', expiryDate)
+
+        // Store the token and its expiry in the database
+        await TokenBlacklist.create({
+            token,
+            expiry: expiryDate
+        });
+
+        res.status(200).json({ message: 'Logout successful' });
+    } catch (err) {
+        res.status(403).json({ error: 'Invalid token or logout failed', details: err.message });
+    }
+};
+
+
+module.exports = { register, login, logout };
