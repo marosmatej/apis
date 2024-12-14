@@ -12,101 +12,90 @@ app = Flask(__name__)
 # Load the dataset
 df = pd.read_csv('books.csv')
 
-# Select relevant features
-df = df[['book_id', 'title', 'authors', 'average_rating']]
+# Load the tags dataset
+tags_df = pd.read_csv('tags.csv')
+book_tags_df = pd.read_csv('book_tags.csv')
 
-# Normalize the titles to lowercase
-df['title'] = df['title'].str.lower()
+# Merge tags with books
+book_tags_df = book_tags_df.merge(tags_df, left_on='tag_id', right_on='tag_id', how='left')
 
-# Combine title and authors into a single feature
-df['combined_features'] = df['title'] + ' ' + df['authors']
+# Group tags by book_id and concatenate them into a single string
+book_tags_df = book_tags_df.groupby('goodreads_book_id')['tag_name'].apply(lambda x: ' '.join(x)).reset_index()
+
+# Merge the tags with the main books dataframe
+df = df.merge(book_tags_df, left_on='book_id', right_on='goodreads_book_id', how='left')
+df['tag_name'] = df['tag_name'].fillna('')  # Fill NaN values with an empty string
+
+# Combine title, authors, and tags into a single feature
+df['combined_features'] = df['title'] + ' ' + df['authors'] + ' ' + df['tag_name']
 
 # Initialize the TF-IDF Vectorizer
-tfidf = TfidfVectorizer(stop_words='english')
+tfidf_vectorizer = TfidfVectorizer()
+tfidf_matrix = tfidf_vectorizer.fit_transform(df['combined_features'])
 
-# Fit and transform the combined features
-tfidf_matrix = tfidf.fit_transform(df['combined_features'])
-
-# Compute the cosine similarity matrix
-cosine_sim = cosine_similarity(tfidf_matrix, tfidf_matrix)
-
-# Set up the database
-engine = create_engine('sqlite:///books.db')
+# Database setup
 Base = declarative_base()
 
-class Book(Base):
-    __tablename__ = 'books'
+class UserRating(Base):
+    __tablename__ = 'user_ratings'
     id = Column(Integer, primary_key=True)
-    book_id = Column(Integer, unique=True)
-    title = Column(String)
-    authors = Column(String)
-    average_rating = Column(Float)
-    vector = Column(LargeBinary)
+    user_id = Column(Integer)
+    book_id = Column(Integer)
+    rating = Column(Integer)  # 1 for like, -1 for dislike
 
+engine = create_engine('sqlite:///books.db')
 Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
 session = Session()
 
-# Clear the database
-session.query(Book).delete()
-session.commit()
+def get_recommendations(user_id):
+    # Get the user's ratings
+    user_ratings = session.query(UserRating).filter_by(user_id=user_id).all()
 
-# Check for duplicates
-duplicates = df[df.duplicated('book_id')]
-print(f"Duplicate book IDs: {duplicates}")
-
-# Remove duplicates
-df = df.drop_duplicates('book_id')
-
-# Store the vectors in the database
-for i, row in df.iterrows():
-    vector = pickle.dumps(tfidf_matrix[i].toarray())
-    book = Book(book_id=row['book_id'], title=row['title'], authors=row['authors'], average_rating=row['average_rating'], vector=vector)
-    print(f"Storing book: {row['title']} with ID: {row['book_id']}")  # Print the title and ID for debugging
-    session.add(book)
-session.commit()
-
-def get_recommendations(book_id):
-    # Get the book from the database
-    book = session.query(Book).filter_by(book_id=book_id).first()
-    if not book:
-        print(f"Book with ID '{book_id}' not found in the database.")
+    if not user_ratings:
         return []
 
-    # Load the vector
-    book_vector = pickle.loads(book.vector)
+    # Get the books the user liked
+    liked_books = [rating.book_id for rating in user_ratings if rating.rating == 1]
 
-    # Compute the cosine similarity with all other books
-    sim_scores = []
-    for other_book in session.query(Book).all():
-        other_vector = pickle.loads(other_book.vector)
-        sim_score = cosine_similarity(book_vector, other_vector)[0][0]
-        sim_scores.append((other_book.book_id, sim_score))
+    if not liked_books:
+        return []
 
-    # Sort the books based on the similarity scores
-    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
+    # Get the feature vectors for the liked books
+    liked_books_features = df[df['book_id'].isin(liked_books)]['combined_features']
 
-    # Print similarity scores for debugging
-    print(f"Similarity scores for book ID '{book_id}': {sim_scores}")
+    # Compute similarity scores between liked books and all books
+    liked_books_matrix = tfidf_vectorizer.transform(liked_books_features)
+    sim_scores = cosine_similarity(liked_books_matrix, tfidf_matrix)
 
-    # Get the IDs of the 10 most similar books
-    recommendations = [book_id for book_id, score in sim_scores[1:11]]
-
-    # Print recommendations for debugging
-    print(f"Recommendations for book ID '{book_id}': {recommendations}")
+    # Get the IDs of the most similar books
+    sim_scores = sim_scores.flatten()
+    similar_books_indices = sim_scores.argsort()[-10:][::-1]
+    recommendations = df.iloc[similar_books_indices]['book_id'].tolist()
 
     return recommendations
 
+@app.route('/rate', methods=['POST'])
+def rate_book():
+    data = request.json
+    user_id = data['user_id']
+    book_id = data['book_id']
+    rating = data['rating']  # 1 for like, -1 for dislike
+
+    user_rating = UserRating(user_id=user_id, book_id=book_id, rating=rating)
+    session.add(user_rating)
+    session.commit()
+
+    return jsonify({"message": "Rating saved"}), 200
+
 @app.route('/recommend', methods=['GET'])
 def recommend():
-    book_id = request.args.get('book_id')
-    print(f"Received request for recommendations with book ID: {book_id}")
-    if book_id:
-        recommendations = get_recommendations(int(book_id))
-        print(f"Recommendations: {recommendations}")
+    user_id = request.args.get('user_id')
+    if user_id:
+        recommendations = get_recommendations(int(user_id))
         return jsonify(recommendations)
     else:
-        return jsonify({"error": "Please provide a book ID"}), 400
+        return jsonify({"error": "Please provide a user ID"}), 400
 
 if __name__ == '__main__':
     app.run(debug=True)
