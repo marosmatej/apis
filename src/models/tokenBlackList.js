@@ -3,7 +3,7 @@ const { sequelize } = require('../utils/db');
 
 const TokenBlacklist = sequelize.define('TokenBlacklist', {
     token: {
-        type: DataTypes.STRING, // Use TEXT to store the token as it's large
+        type: DataTypes.STRING, 
         allowNull: false,
     },
     expiry: {
