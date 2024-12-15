@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -8,6 +9,7 @@ from scipy.sparse import csr_matrix
 from sklearn.neighbors import NearestNeighbors
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 # Load the dataset
 df = pd.read_csv('books.csv')
