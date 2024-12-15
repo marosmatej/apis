@@ -1,19 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import BookPageSlider from './BookPageSlider';
-
 import { useFetchBookmarksQuery } from '../../redux/features/books/booksApi';
+import { useAuth } from '../../context/AuthContext'; // Import the useAuth hook
 
 const categories = ["Choose a genre", "Business", "Fiction", "Horror", "Adventure"];
-const userId = 7; // Replace with dynamic logic as needed
 
 const TopSellers = () => {
+  const { currentUser } = useAuth(); // Access current user data from the context
   const [selectedCategory, setSelectedCategory] = useState("Choose a genre");
-  const { data: books = [], isLoading, error } = useFetchBookmarksQuery(userId);
+  const { data: books = [], isLoading, error } = useFetchBookmarksQuery(currentUser ? currentUser.id : null); // Use dynamic user ID
 
   const filteredBooks =
     selectedCategory === "Choose a genre"
       ? books
       : books.filter((book) => book.category?.toLowerCase() === selectedCategory.toLowerCase());
+
+  useEffect(() => {
+    if (!currentUser) {
+      // Handle scenario when user is not logged in
+      alert('Please log in to view bookmarks');
+    }
+  }, [currentUser]);
 
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>Error fetching data</div>;

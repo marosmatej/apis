@@ -2,19 +2,26 @@ import React, { useState } from 'react';
 import { FiHeart } from "react-icons/fi";
 import { useParams } from "react-router-dom";
 import { useFetchBookByIdQuery, useAddBookmarkMutation, useRateBookMutation } from '../../redux/features/books/booksApi';
+import { useAuth } from '../../context/AuthContext'; // Import useAuth hook
 
 const SingleBook = () => {
     const { id } = useParams();
     const { data: book, isLoading, isError } = useFetchBookByIdQuery(id);
     const [addBookmark, { isLoading: isBookmarking }] = useAddBookmarkMutation();
     const [rateBook] = useRateBookMutation();
+    const { currentUser } = useAuth(); // Access current user data from context
 
     const [rating, setRating] = useState(0);
     const [isRating, setIsRating] = useState(false);
 
     const handleAddToBookmarks = async () => {
+        if (!currentUser) {
+            alert('You need to log in to add bookmarks.');
+            return;
+        }
+
         try {
-            const userId = 7; // Replace with dynamic user ID if available
+            const userId = currentUser.id; // Use dynamic user ID
             await addBookmark({ userId, bookId: id }).unwrap();
             alert('Book added to bookmarks!');
         } catch (error) {
@@ -23,6 +30,11 @@ const SingleBook = () => {
     };
 
     const handleRateBook = async () => {
+        if (!currentUser) {
+            alert('You need to log in to rate a book.');
+            return;
+        }
+
         if (!rating) {
             alert('Please select a rating before submitting.');
             return;
@@ -30,7 +42,7 @@ const SingleBook = () => {
 
         try {
             setIsRating(true);
-            const userId = 11; // Replace with dynamic user ID if available
+            const userId = currentUser.id; // Use dynamic user ID
 
             await rateBook({ userId, bookId: id, rating }).unwrap();
             alert(`Book rated ${rating} stars!`);
