@@ -1,10 +1,12 @@
 import { Link, useNavigate } from "react-router-dom";
 import { IoSearchOutline } from "react-icons/io5";
 import { useState } from "react";
+import { useAuth } from "../context/AuthContext"; // Import useAuth hook
 
 const Navbar = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
+  const { currentUser } = useAuth(); // Get current user data from AuthContext
 
   const handleSearch = (e) => {
     if (e.key === "Enter" && searchQuery.trim() !== "") {
@@ -12,10 +14,10 @@ const Navbar = () => {
     }
   };
 
-   const handleLogout = () => {
-    // Clear credentials (e.g., localStorage, sessionStorage, etc.)
-    localStorage.removeItem("authToken"); // Replace "authToken" with your specific key
-    navigate("/"); // Redirect to login page
+  const handleLogout = () => {
+    localStorage.removeItem("authToken"); // Clear credentials from localStorage
+    localStorage.removeItem("userInfo"); // Remove stored user info
+    navigate("/"); // Redirect to the homepage (or login page)
   };
 
   const handleLogin = () => {
@@ -47,19 +49,22 @@ const Navbar = () => {
           <Link to="/dashboard" className="border-b-2 border-primary">
             Dashboard
           </Link>
-          
-         <button
-            onClick={handleLogin}
-            className="bg-blue-500 text-white px-4 py-1 rounded-md hover:bg-blue-600"
-          >
-            Login
-          </button>
-          <button
-            onClick={handleLogout}
-            className="bg-red-500 text-white px-4 py-1 rounded-md hover:bg-red-600"
-          >
-            Log Out
-          </button>
+
+          {currentUser ? (
+            <button
+              onClick={handleLogout}
+              className="bg-red-500 text-white px-4 py-1 rounded-md hover:bg-red-600"
+            >
+              Log Out
+            </button>
+          ) : (
+            <button
+              onClick={handleLogin}
+              className="bg-blue-500 text-white px-4 py-1 rounded-md hover:bg-blue-600"
+            >
+              Login
+            </button>
+          )}
         </div>
       </nav>
     </header>
