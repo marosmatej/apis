@@ -61,6 +61,30 @@ const getBookmarkedBooks = async (req, res) => {
     }
 };
 
+const deleteBookmark = async (req, res) => {
+    const { userId, bookId } = req.params;
 
-module.exports = { bookmarkBook, rateBook, getBookmarkedBooks }
+    try {
+        // Find the bookmarked record for the user and the book
+        const record = await UserBooks.findOne({
+            where: { user_id: userId, book_id: bookId, is_bookmarked: true }
+        });
+
+        if (!record) {
+            // If there's no record or the book isn't bookmarked, return an error message
+            return res.status(404).json({ error: 'Bookmark not found or already removed' });
+        }
+
+        // Delete the record from the database
+        await record.destroy();
+
+        res.json({ message: 'Bookmark removed successfully' });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to remove the bookmark', details: error });
+    }
+};
+
+
+
+module.exports = { bookmarkBook, rateBook, getBookmarkedBooks, deleteBookmark }
 
